@@ -639,7 +639,7 @@ namespace implementation {
 		"cpu-1-3-usr",
 	};
 
-	std::vector<struct target_therm_cfg>  sensor_cfg_msmnile = {
+	std::vector<struct target_therm_cfg>  sensor_cfg_msmnile_common = {
 		{
 			TemperatureType::CPU,
 			cpu_sensors_kona,
@@ -676,6 +676,9 @@ namespace implementation {
 			40000,
 			true,
 		},
+	};
+
+	std::vector<struct target_therm_cfg>  sensor_cfg_msmnile_specific = {
 		{
 			TemperatureType::BCL_CURRENT,
 			{ "pm8150b-ibat-lvl0" },
@@ -1523,10 +1526,10 @@ namespace implementation {
 		{435, sensor_cfg_lito},
 		{459, sensor_cfg_lito},
 		{476, sensor_cfg_lito}, // orchid
-		{339, sensor_cfg_msmnile},
-		{361, sensor_cfg_msmnile},
-		{362, sensor_cfg_msmnile},
-		{367, sensor_cfg_msmnile},
+		{339, sensor_cfg_msmnile_common},
+		{361, sensor_cfg_msmnile_common},
+		{362, sensor_cfg_msmnile_common},
+		{367, sensor_cfg_msmnile_common},
 		{356, kona_common}, // kona
 		{415, lahaina_common}, // lahaina
 		{439, lahaina_common}, // lahainap
@@ -1562,6 +1565,9 @@ namespace implementation {
 
 	const std::unordered_map<int, std::vector<struct target_therm_cfg>>
 		msm_soc_specific = {
+		{339, sensor_cfg_msmnile_specific},
+		{361, sensor_cfg_msmnile_specific},
+		{362, sensor_cfg_msmnile_specific},
 		{356, kona_specific}, // kona
 		{415, lahaina_specific}, // lahaina
 		{439, lahaina_specific}, // lahainap
@@ -1588,6 +1594,11 @@ namespace implementation {
 		{591, waipio_specific}, //ukee
 	};
 
+	const std::unordered_map<int, bool>
+		battery_bcl_cfg_disable_map = {
+		{367, true},
+	};
+
 	std::vector<struct target_therm_cfg> add_target_config(
 			int socID,
 			std::vector<struct target_therm_cfg> conf)
@@ -1606,6 +1617,7 @@ namespace implementation {
 	ThermalConfig::ThermalConfig():cmnInst()
 	{
 		std::unordered_map<int, std::vector<struct target_therm_cfg>>::const_iterator it;
+		std::unordered_map<int, bool>::const_iterator it_2;
 		std::vector<struct target_therm_cfg>::iterator it_vec;
 		bool bcl_defined = false;
 		std::string soc_val;
@@ -1643,10 +1655,13 @@ namespace implementation {
 				bcl_defined = true;
 		}
 
-		thermalConfig.push_back(bat_conf);
-		if (!bcl_defined)
-			thermalConfig.insert(thermalConfig.end(),
-				bcl_conf.begin(), bcl_conf.end());
+		it_2 = battery_bcl_cfg_disable_map.find(soc_id);
+		if (it_2 == battery_bcl_cfg_disable_map.end() || !it_2->second) {
+			thermalConfig.push_back(bat_conf);
+			if (!bcl_defined)
+				thermalConfig.insert(thermalConfig.end(),
+					bcl_conf.begin(), bcl_conf.end());
+		}
 		LOG(DEBUG) << "Total sensors:" << thermalConfig.size();
 	}
 }  // namespace implementation
